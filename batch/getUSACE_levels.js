@@ -8,6 +8,7 @@ const uri = process.env.MONGO_URI ||
   `mongodb://${process.env.MONGO_USERNAME || 'swpauser'}:${process.env.MONGO_PASSWORD || 'changeme'}@${process.env.MONGO_HOST || 'localhost'}:${process.env.MONGO_PORT || 27017}/?authSource=${authSource}`;
 const dbName = process.env.MONGO_DB || 'flow-watch';
 const damCodesCollection = process.env.DAM_CODES_COLLECTION || 'dam_codes';
+const USACE_REQUEST_TIMEOUT_MS = Number(process.env.USACE_REQUEST_TIMEOUT_MS || 15000);
 
 let damCodes = [];
 // Load damCodes from MongoDB at startup
@@ -45,7 +46,7 @@ async function getHeadwaterLevel(locationKey, district, begin, end) {
   const params = { name: locationKey, begin, end };
 
   try {
-    const response = await axios.get(url, { params });
+    const response = await axios.get(url, { params, timeout: USACE_REQUEST_TIMEOUT_MS });
     const data = response.data;
 
     if (Array.isArray(data.values)) {
@@ -77,7 +78,7 @@ async function getTailwaterLevel(locationKey, district, begin, end) {
   const params = { name: locationKey, begin, end };
 
   try {
-    const response = await axios.get(url, { params });
+    const response = await axios.get(url, { params, timeout: USACE_REQUEST_TIMEOUT_MS });
     const data = response.data;
 
     if (Array.isArray(data.values)) {

@@ -8,7 +8,7 @@ image:
 
 secrets:
   mongoCredentialsName: mongo-credentials
-  openaiApiKeyName: openai-api-key
+  openaiApiKeyName: ""
 
 service:
   type: ClusterIP

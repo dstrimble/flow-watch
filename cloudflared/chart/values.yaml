@@ -1,0 +1,10 @@
+replicaCount: 1
+
+image:
+  repository: cloudflare/cloudflared
+  tag: 2026.6.1
+  pullPolicy: IfNotPresent
+
+tunnelTokenSecretName: cloudflare-tunnel-token
+
+resources: {}

@@ -1,7 +1,7 @@
 imagePullSecrets: []
 
 image:
-  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-batch
+  repository: docker.io/dstrimble83/flow-watch-batch
   tag: latest
   pullPolicy: IfNotPresent
 

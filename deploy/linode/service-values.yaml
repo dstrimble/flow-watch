@@ -1,15 +1,15 @@
-replicaCount: 2
+replicaCount: 1
 
 imagePullSecrets: []
 
 image:
-  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-service
+  repository: docker.io/dstrimble83/flow-watch-service
   tag: latest
   pullPolicy: IfNotPresent
 
 secrets:
   mongoCredentialsName: mongo-credentials
-  openaiApiKeyName: openai-api-key
+  openaiApiKeyName: ""
 
 service:
   type: ClusterIP
@@ -25,16 +25,16 @@ env:
   AUTH_SOURCE: admin
   PORT: 3000
   contextPath: /schedule
-  CORS_URL: https://flow-watch.example.com
+  CORS_URL: https://flow-watch.com
 
 ingress:
-  enabled: true
+  enabled: false
   className: nginx
-  host: api.flow-watch.example.com
+  host: api.flow-watch.com
   tls:
     - hosts:
-        - api.flow-watch.example.com
-      secretName: api-flow-watch-example-com
+        - api.flow-watch.com
+      secretName: api-flow-watch-com
   annotations:
     cert-manager.io/cluster-issuer: production
     nginx.ingress.kubernetes.io/proxy-body-size: "0"

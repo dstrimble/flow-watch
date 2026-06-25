@@ -1,9 +1,9 @@
-replicaCount: 2
+replicaCount: 1
 
 imagePullSecrets: []
 
 image:
-  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-ui
+  repository: docker.io/dstrimble83/flow-watch-ui
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -14,16 +14,16 @@ service:
 
 env:
   PORT: 80
-  REACT_APP_API_HOST: https://api.flow-watch.example.com
+  REACT_APP_API_HOST: https://api.flow-watch.com
 
 ingress:
-  enabled: true
+  enabled: false
   className: nginx
-  host: flow-watch.example.com
+  host: flow-watch.com
   tls:
     - hosts:
-        - flow-watch.example.com
-      secretName: flow-watch-example-com
+        - flow-watch.com
+      secretName: flow-watch-com
   annotations:
     cert-manager.io/cluster-issuer: production
     nginx.ingress.kubernetes.io/proxy-body-size: "0"

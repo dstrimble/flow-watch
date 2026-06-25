@@ -1,0 +1,6 @@
+apiVersion: v2
+name: cloudflared
+description: Cloudflare Tunnel deployment for Flow Watch
+type: application
+version: 1.0.0
+appVersion: "2026.6.1"
