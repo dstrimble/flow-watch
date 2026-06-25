@@ -29,6 +29,8 @@ spec:
           value: {{ .Values.env.PORT | quote }}
         - name: REACT_APP_API_HOST
           value: {{ .Values.env.REACT_APP_API_HOST | quote }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
         livenessProbe:
           httpGet:
             path: /

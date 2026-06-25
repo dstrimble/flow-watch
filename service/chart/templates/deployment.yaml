@@ -58,6 +58,8 @@ spec:
               name: {{ .Values.secrets.openaiApiKeyName | quote }}
               key: api-key
         {{- end }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
         livenessProbe:
           httpGet:
             path: /healthz

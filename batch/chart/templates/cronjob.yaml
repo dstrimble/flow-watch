@@ -39,5 +39,11 @@ spec:
                   value: {{ .Values.global.AUTH_SOURCE | quote }}
                 - name: MONGO_COLLECTION
                   value: {{ .Values.scrapeswpa.MONGO_COLLECTION | quote }}
+                - name: PUSHGATEWAY_URL
+                  value: {{ .Values.pushgateway.url | quote }}
+                - name: PUSHGATEWAY_JOB_NAME
+                  value: {{ .Values.pushgateway.jobNames.scrapeswpa | quote }}
+              resources:
+{{ toYaml .Values.resources.scrapeswpa | indent 16 }}
               args:
                 - scrapeSWPA.js

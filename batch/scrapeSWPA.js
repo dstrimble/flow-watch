@@ -1,8 +1,12 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { MongoClient } = require('mongodb');
+const { pushBatchMetrics } = require('./pushGateway');
 
 async function scrapeSWPA(dayOverride) {
+  const startedAt = Date.now();
+  let recordsProcessed = 0;
+  let failureMessage = '';
   // Determine the correct URL based on the current day of the week or override
   const dayMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   let dayStr;
@@ -44,8 +48,7 @@ async function scrapeSWPA(dayOverride) {
     }
 
     if (!textContent) {
-      console.error('Could not find the SWPA Generation Schedule text block.');
-      return;
+      throw new Error('Could not find the SWPA Generation Schedule text block.');
     }
 
     // Extract only the block starting with the header
@@ -62,14 +65,12 @@ async function scrapeSWPA(dayOverride) {
     // Accept lines like 'PROJECTED LOADING SCHEDULE FRIDAY AUGUST 22, 2025 ...'
     const dateLine = normalizedLines.find(line => /[A-Z]+ [A-Z]+ \d{1,2}, \d{4}/.test(line));
     if (!dateLine) {
-      console.error('Could not find report date line. Lines scanned:', normalizedLines.slice(0, 10));
-      return;
+      throw new Error(`Could not find report date line. Lines scanned: ${normalizedLines.slice(0, 10).join(' | ')}`);
     }
     // Extract the actual date substring
     const dateMatch = dateLine.match(/([A-Z]+) ([A-Z]+) (\d{1,2}), (\d{4})/);
     if (!dateMatch) {
-      console.error('Could not parse report date line:', dateLine);
-      return;
+      throw new Error(`Could not parse report date line: ${dateLine}`);
     }
     // dateMatch: [full, weekday, month, day, year]
     const [__, weekday, monthName, dayStr, yearStr] = dateMatch;
@@ -78,8 +79,7 @@ async function scrapeSWPA(dayOverride) {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     if (reportDate !== todayStr) {
-      console.error(`Report date (${reportDate}) does not match today's date (${todayStr}). Exiting.`);
-      process.exit(1);
+      throw new Error(`Report date (${reportDate}) does not match today's date (${todayStr}).`);
     }
 
     // Stop processing at the TOT row (inclusive)
@@ -91,8 +91,7 @@ async function scrapeSWPA(dayOverride) {
       line => line.match(/^HR\s+/) || line.startsWith('HR')
     );
     if (headerRowIdx === -1) {
-      console.error('Could not find column headers.');
-      return;
+      throw new Error('Could not find column headers.');
     }
     const headers = dataLines[headerRowIdx].split(/\s+/); // split columns by one or more spaces
 
@@ -121,9 +120,6 @@ async function scrapeSWPA(dayOverride) {
       `mongodb://${process.env.MONGO_USERNAME || 'swpauser'}:${process.env.MONGO_PASSWORD || 'changeme'}@${process.env.MONGO_HOST || 'localhost'}:${process.env.MONGO_PORT || 27017}/?authSource=${authSource}`;
     const dbName = process.env.MONGO_DB || 'flow-watch';
     const collectionName = process.env.MONGO_COLLECTION || 'swpa_schedule';
-    // Log MongoDB username and password length
-    const mongoUser = process.env.MONGO_USERNAME || 'swpauser';
-    const mongoPass = process.env.MONGO_PASSWORD || 'changeme';
     const client = new MongoClient(uri);
     try {
       await client.connect();
@@ -131,17 +127,30 @@ async function scrapeSWPA(dayOverride) {
       const collection = db.collection(collectionName);
       if (hourlyData.length > 0) {
         await collection.insertMany(hourlyData);
+        recordsProcessed = hourlyData.length;
         console.log(`Inserted ${hourlyData.length} documents into ${collectionName}`);
       } else {
         console.log('No data to insert.');
       }
     } catch (err) {
-      console.error('MongoDB error:', err.message);
+      throw new Error(`MongoDB error: ${err.message}`);
     } finally {
       await client.close();
     }
   } catch (err) {
+    failureMessage = err.message;
     console.error('Error fetching or parsing:', err.message);
+    process.exitCode = 1;
+  } finally {
+    await pushBatchMetrics({
+      gatewayUrl: process.env.PUSHGATEWAY_URL,
+      jobName: process.env.PUSHGATEWAY_JOB_NAME || 'scrapeswpa',
+      status: failureMessage ? 'failed' : 'success',
+      durationSeconds: (Date.now() - startedAt) / 1000,
+      recordsProcessed,
+      partialFailures: 0,
+      errorMessage: failureMessage
+    });
   }
 }
 

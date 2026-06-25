@@ -37,5 +37,13 @@ spec:
                   value: {{ .Values.global.AUTH_SOURCE | quote }}
                 - name: DAM_CODES_COLLECTION
                   value: {{ default .Values.getusacelevels.MONGO_COLLECTION .Values.getusacelevels.DAM_CODES_COLLECTION | quote }}
+                - name: PUSHGATEWAY_URL
+                  value: {{ .Values.pushgateway.url | quote }}
+                - name: PUSHGATEWAY_JOB_NAME
+                  value: {{ .Values.pushgateway.jobNames.getusacelevels | quote }}
+                - name: PARTIAL_FAILURE_MODE
+                  value: {{ .Values.pushgateway.partialFailureMode.getusacelevels | quote }}
+              resources:
+{{ toYaml .Values.resources.getusacelevels | indent 16 }}
               args: ["getUSACE_levels.js"]
           restartPolicy: OnFailure

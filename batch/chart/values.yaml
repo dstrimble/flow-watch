@@ -8,6 +8,18 @@ image:
 secrets:
   mongoCredentialsName: mongo-credentials
 
+resources:
+  scrapeswpa: {}
+  getusacelevels: {}
+
+pushgateway:
+  url: ""
+  jobNames:
+    scrapeswpa: scrapeswpa
+    getusacelevels: get_usace_levels
+  partialFailureMode:
+    getusacelevels: degraded
+
 global:
   registry: index.docker.io/lemonpro
   image: scrapeswpa

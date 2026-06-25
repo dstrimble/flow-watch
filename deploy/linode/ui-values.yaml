@@ -12,6 +12,14 @@ service:
   port: 80
   name: flow-watch-ui
 
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 75m
+    memory: 96Mi
+
 env:
   PORT: 80
   REACT_APP_API_HOST: https://flow-watch-api.trimblebarra.com

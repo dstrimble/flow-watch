@@ -1,0 +1,381 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flow-watch-grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  flow-watch-backend-overview.json: |
+    {
+      "id": null,
+      "uid": "flow-watch-backend-overview",
+      "title": "Flow Watch Backend Overview",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "tags": ["flow-watch", "backend"],
+      "templating": {"list": []},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request Rate (req/s)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(flow_watch_http_requests_total[5m]))",
+              "legendFormat": "total",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "5xx Error Ratio",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(flow_watch_http_requests_total{status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(flow_watch_http_requests_total[5m])), 0.001)",
+              "legendFormat": "5xx_ratio",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "p95 HTTP Latency (ms)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(flow_watch_http_request_duration_ms_bucket[5m])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "In-Flight Requests",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "flow_watch_http_in_flight_requests",
+              "legendFormat": "in_flight",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+
+  flow-watch-backend-runtime.json: |
+    {
+      "id": null,
+      "uid": "flow-watch-backend-runtime",
+      "title": "Flow Watch Backend Runtime",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "tags": ["flow-watch", "backend", "runtime"],
+      "templating": {"list": []},
+      "panels": [
+        {
+          "id": 1,
+          "title": "Process CPU (cores)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(process_cpu_seconds_total[5m])",
+              "legendFormat": "cpu",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Resident Memory",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+          "targets": [
+            {
+              "expr": "process_resident_memory_bytes",
+              "legendFormat": "rss",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Event Loop Lag",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+          "targets": [
+            {
+              "expr": "nodejs_eventloop_lag_seconds",
+              "legendFormat": "lag",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Mongo Operation Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "sum by (operation, status) (rate(flow_watch_mongo_operations_total[5m]))",
+              "legendFormat": "{{operation}} {{status}}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Mongo p95 Latency (ms)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(flow_watch_mongo_operation_duration_ms_bucket[5m])))",
+              "legendFormat": "{{operation}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6,
+          "title": "Dam Code Cache Size",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+          "targets": [
+            {
+              "expr": "flow_watch_dam_codes_loaded",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Dam Code Cache Last Refresh Age",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+          "targets": [
+            {
+              "expr": "time() - flow_watch_dam_codes_last_loaded_timestamp_seconds",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 8,
+          "title": "Process Uptime",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16},
+          "targets": [
+            {
+              "expr": "time() - process_start_time_seconds",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        }
+      ]
+    }
+
+  flow-watch-batch-operations.json: |
+    {
+      "id": null,
+      "uid": "flow-watch-batch-operations",
+      "title": "Flow Watch Batch Operations",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "30s",
+      "time": {
+        "from": "now-24h",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "tags": ["flow-watch", "batch"],
+      "templating": {"list": []},
+      "panels": [
+        {
+          "id": 1,
+          "title": "scrapeswpa Status",
+          "type": "stat",
+          "gridPos": {"h": 7, "w": 6, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_status_code{job=\"scrapeswpa\"} or flow_watch_batch_last_run_status_code{exported_job=\"scrapeswpa\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "get_usace_levels Status",
+          "type": "stat",
+          "gridPos": {"h": 7, "w": 6, "x": 6, "y": 0},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_status_code{job=\"get_usace_levels\"} or flow_watch_batch_last_run_status_code{exported_job=\"get_usace_levels\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "scrapeswpa Last Run Age",
+          "type": "stat",
+          "gridPos": {"h": 7, "w": 6, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "time() - (flow_watch_batch_last_run_timestamp_seconds{job=\"scrapeswpa\"} or flow_watch_batch_last_run_timestamp_seconds{exported_job=\"scrapeswpa\"})",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "get_usace_levels Last Run Age",
+          "type": "stat",
+          "gridPos": {"h": 7, "w": 6, "x": 18, "y": 0},
+          "targets": [
+            {
+              "expr": "time() - (flow_watch_batch_last_run_timestamp_seconds{job=\"get_usace_levels\"} or flow_watch_batch_last_run_timestamp_seconds{exported_job=\"get_usace_levels\"})",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5,
+          "title": "Batch Duration (seconds)",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 7},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_duration_seconds{job=\"scrapeswpa\"} or flow_watch_batch_last_run_duration_seconds{exported_job=\"scrapeswpa\"}",
+              "legendFormat": "scrapeswpa",
+              "refId": "A"
+            },
+            {
+              "expr": "flow_watch_batch_last_run_duration_seconds{job=\"get_usace_levels\"} or flow_watch_batch_last_run_duration_seconds{exported_job=\"get_usace_levels\"}",
+              "legendFormat": "get_usace_levels",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Batch Records Processed",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 7},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_records_processed{job=\"scrapeswpa\"} or flow_watch_batch_last_run_records_processed{exported_job=\"scrapeswpa\"}",
+              "legendFormat": "scrapeswpa",
+              "refId": "A"
+            },
+            {
+              "expr": "flow_watch_batch_last_run_records_processed{job=\"get_usace_levels\"} or flow_watch_batch_last_run_records_processed{exported_job=\"get_usace_levels\"}",
+              "legendFormat": "get_usace_levels",
+              "refId": "B"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "USACE Partial Failures",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_partial_failures{job=\"get_usace_levels\"} or flow_watch_batch_last_run_partial_failures{exported_job=\"get_usace_levels\"}",
+              "legendFormat": "partial_failures",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "title": "USACE Degraded Flag",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+          "targets": [
+            {
+              "expr": "flow_watch_batch_last_run_degraded{job=\"get_usace_levels\"} or flow_watch_batch_last_run_degraded{exported_job=\"get_usace_levels\"}",
+              "legendFormat": "degraded",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }

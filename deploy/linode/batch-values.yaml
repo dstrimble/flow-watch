@@ -2,11 +2,35 @@ imagePullSecrets: []
 
 image:
   repository: docker.io/dstrimble83/flow-watch-batch
-  tag: latest
+  tag: 20260625-batch-degraded
   pullPolicy: IfNotPresent
 
 secrets:
   mongoCredentialsName: mongo-credentials
+
+resources:
+  scrapeswpa:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  getusacelevels:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+pushgateway:
+  url: http://pushgateway-prometheus-pushgateway.monitoring.svc.cluster.local:9091
+  jobNames:
+    scrapeswpa: scrapeswpa
+    getusacelevels: get_usace_levels
+  partialFailureMode:
+    getusacelevels: degraded
 
 global:
   MONGO_HOST: flow-watch-mongodb.flow-watch.svc.cluster.local

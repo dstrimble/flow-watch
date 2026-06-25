@@ -10,6 +10,9 @@ service:
   type: ClusterIP
   port: 80
   name: flow-watch-ui
+
+resources: {}
+
 env:
   PORT: 80
   REACT_APP_API_HOST: "https://api.flow-watch.com"

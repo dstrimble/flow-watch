@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { DateTime } = require('luxon');
 const { MongoClient } = require('mongodb');
+const { pushBatchMetrics } = require('./pushGateway');
 
 //const damCodes = require('../docker-entrypoint-initdb.d/damCodes.json');
 const authSource = process.env.AUTH_SOURCE || 'flow-watch';
@@ -9,6 +10,7 @@ const uri = process.env.MONGO_URI ||
 const dbName = process.env.MONGO_DB || 'flow-watch';
 const damCodesCollection = process.env.DAM_CODES_COLLECTION || 'dam_codes';
 const USACE_REQUEST_TIMEOUT_MS = Number(process.env.USACE_REQUEST_TIMEOUT_MS || 15000);
+const PARTIAL_FAILURE_MODE = (process.env.PARTIAL_FAILURE_MODE || 'degraded').toLowerCase();
 
 let damCodes = [];
 // Load damCodes from MongoDB at startup
@@ -61,15 +63,28 @@ async function getHeadwaterLevel(locationKey, district, begin, end) {
         headwater_level: latest?.value ?? null,
         timestamp: latest?.timestamp ?? null,
         locationKey,
-        district
+        district,
+        partialFailure: latest?.value == null
       };
     } else {
       console.log(`No 'values' found for '${locationKey}' (${district})`);
-      return null;
+      return {
+        headwater_level: null,
+        timestamp: null,
+        locationKey,
+        district,
+        partialFailure: true
+      };
     }
   } catch (error) {
     console.error(`Error retrieving data for '${locationKey}' (${district}): ${error.message}`);
-    return null;
+    return {
+      headwater_level: null,
+      timestamp: null,
+      locationKey,
+      district,
+      partialFailure: true
+    };
   }
 }
 
@@ -93,68 +108,116 @@ async function getTailwaterLevel(locationKey, district, begin, end) {
         tailwater_level: latest?.value ?? null,
         timestamp: latest?.timestamp ?? null,
         locationKey,
-        district
+        district,
+        partialFailure: latest?.value == null
       };
     } else {
       console.log(`No 'values' found for '${locationKey}' (${district})`);
-      return null;
+      return {
+        tailwater_level: null,
+        timestamp: null,
+        locationKey,
+        district,
+        partialFailure: true
+      };
     }
   } catch (error) {
     console.error(`Error retrieving data for '${locationKey}' (${district}): ${error.message}`);
-    return null;
+    return {
+      tailwater_level: null,
+      timestamp: null,
+      locationKey,
+      district,
+      partialFailure: true
+    };
   }
 }
 
 // Run for all dams in damCodes
 (async () => {
-  await loadDamCodesFromDb();
-  const { begin, end } = getTimeWindow();
+  const startedAt = Date.now();
+  let recordsProcessed = 0;
+  let partialFailures = 0;
+  let failureMessage = '';
 
-  const client = new MongoClient(uri);
-  await client.connect();
-  const db = client.db(dbName);
-  const collection = db.collection(damCodesCollection);
+  try {
+    await loadDamCodesFromDb();
+    const { begin, end } = getTimeWindow();
 
-  const enrichedDams = [];
+    const client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db(dbName);
+    const collection = db.collection(damCodesCollection);
 
-  for (const dam of damCodes) {
-    const locationKey = dam.level_id;
-    const tailLocationKey = dam.tail_level_id;
-    const district = dam.district;
+    const enrichedDams = [];
 
-    if (!district || (!locationKey && !tailLocationKey)) continue; // skip if missing district or both location keys
-    // Fetch headwater and tailwater levels in parallel
-    const [headwaterData, tailwaterData] = await Promise.all([
-      getHeadwaterLevel(locationKey, district, begin, end),
-      tailLocationKey ? getTailwaterLevel(tailLocationKey, district, begin, end) : Promise.resolve(null)
-    ]);
+    for (const dam of damCodes) {
+      const locationKey = dam.level_id;
+      const tailLocationKey = dam.tail_level_id;
+      const district = dam.district;
 
-    const enriched = {
-      ...dam,
-      headwater_level: headwaterData?.headwater_level ?? null,
-      headwater_level_timestamp: headwaterData?.timestamp ?? null,
-      tailwater_level: tailwaterData?.tailwater_level ?? null,
-      tailwater_level_timestamp: tailwaterData?.timestamp ?? null
-    };
+      if (!district || (!locationKey && !tailLocationKey)) continue;
+      const [headwaterData, tailwaterData] = await Promise.all([
+        getHeadwaterLevel(locationKey, district, begin, end),
+        tailLocationKey ? getTailwaterLevel(tailLocationKey, district, begin, end) : Promise.resolve(null)
+      ]);
 
-    enrichedDams.push(enriched);
+      const enriched = {
+        ...dam,
+        headwater_level: headwaterData?.headwater_level ?? null,
+        headwater_level_timestamp: headwaterData?.timestamp ?? null,
+        tailwater_level: tailwaterData?.tailwater_level ?? null,
+        tailwater_level_timestamp: tailwaterData?.timestamp ?? null
+      };
 
-    await collection.updateOne(
-      { code: dam.code },
-      {
-        $set: {
-          headwater_level: enriched.headwater_level,
-          headwater_level_timestamp: enriched.headwater_level_timestamp,
-          tailwater_level: enriched.tailwater_level,
-          tailwater_level_timestamp: enriched.tailwater_level_timestamp
+      enrichedDams.push(enriched);
+
+      await collection.updateOne(
+        { code: dam.code },
+        {
+          $set: {
+            headwater_level: enriched.headwater_level,
+            headwater_level_timestamp: enriched.headwater_level_timestamp,
+            tailwater_level: enriched.tailwater_level,
+            tailwater_level_timestamp: enriched.tailwater_level_timestamp
+          }
         }
-      }
-    );
+      );
+
+          if (locationKey && headwaterData?.partialFailure) {
+            partialFailures += 1;
+          }
+
+          if (tailLocationKey && tailwaterData?.partialFailure) {
+            partialFailures += 1;
+          }
+    }
+
+    await client.close();
+    recordsProcessed = enrichedDams.length;
+    console.log(`Updated ${enrichedDams.length} dam records with headwater and tailwater levels.`);
+        if (partialFailures > 0) {
+          console.log(`Completed with ${partialFailures} partial upstream data failures.`);
+        }
+  } catch (error) {
+    failureMessage = error.message;
+    console.error(`getUSACE_levels failed: ${error.message}`);
+    process.exitCode = 1;
+  } finally {
+    await pushBatchMetrics({
+      gatewayUrl: process.env.PUSHGATEWAY_URL,
+      jobName: process.env.PUSHGATEWAY_JOB_NAME || 'get_usace_levels',
+      status: failureMessage
+        ? 'failed'
+        : (partialFailures > 0
+            ? (PARTIAL_FAILURE_MODE === 'failure' ? 'failed' : 'degraded')
+            : 'success'),
+      durationSeconds: (Date.now() - startedAt) / 1000,
+      recordsProcessed,
+          partialFailures,
+      errorMessage: failureMessage
+    });
   }
-
-  await client.close();
-
-  console.log(`Updated ${enrichedDams.length} dam records with headwater and tailwater levels.`);
 })();
 
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient } = require('mongodb');
+const client = require('prom-client');
 
 const app = express();
 app.use(cors({
@@ -12,10 +13,104 @@ const port = process.env.PORT || 3000;
 
 const contextPath = process.env.contextPath || "/schedule";
 
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestsTotal = new client.Counter({
+  name: 'flow_watch_http_requests_total',
+  help: 'Total number of HTTP requests handled by schedule-service',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register]
+});
+
+const httpInFlightRequests = new client.Gauge({
+  name: 'flow_watch_http_in_flight_requests',
+  help: 'Current number of in-flight HTTP requests for schedule-service',
+  registers: [register]
+});
+
+const httpRequestDurationMs = new client.Histogram({
+  name: 'flow_watch_http_request_duration_ms',
+  help: 'HTTP request duration in milliseconds for schedule-service',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+  registers: [register]
+});
+
+const mongoOperationsTotal = new client.Counter({
+  name: 'flow_watch_mongo_operations_total',
+  help: 'Total number of MongoDB operations performed by schedule-service',
+  labelNames: ['operation', 'collection', 'status'],
+  registers: [register]
+});
+
+const mongoOperationDurationMs = new client.Histogram({
+  name: 'flow_watch_mongo_operation_duration_ms',
+  help: 'MongoDB operation duration in milliseconds for schedule-service',
+  labelNames: ['operation', 'collection', 'status'],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500],
+  registers: [register]
+});
+
+const damCodesLoadedGauge = new client.Gauge({
+  name: 'flow_watch_dam_codes_loaded',
+  help: 'Number of dam codes loaded into the in-memory cache',
+  registers: [register]
+});
+
+const damCodesLastLoadedTimestampSeconds = new client.Gauge({
+  name: 'flow_watch_dam_codes_last_loaded_timestamp_seconds',
+  help: 'Unix timestamp of the last successful dam code cache refresh',
+  registers: [register]
+});
+
+async function observeMongoOperation(operation, collection, work) {
+  const startedAt = process.hrtime.bigint();
+  let status = 'success';
+
+  try {
+    return await work();
+  } catch (error) {
+    status = 'error';
+    throw error;
+  } finally {
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+    const labels = { operation, collection, status };
+    mongoOperationsTotal.inc(labels);
+    mongoOperationDurationMs.observe(labels, durationMs);
+  }
+}
+
+app.use((req, res, next) => {
+  const startTime = process.hrtime.bigint();
+
+  httpInFlightRequests.inc();
+
+  res.on('finish', () => {
+    const durationMs = Number(process.hrtime.bigint() - startTime) / 1e6;
+    const route = req.route?.path || req.path;
+    const labels = {
+      method: req.method,
+      route,
+      status_code: String(res.statusCode)
+    };
+
+    httpInFlightRequests.dec();
+    httpRequestsTotal.inc(labels);
+    httpRequestDurationMs.observe(labels, durationMs);
+  });
+
+  next();
+});
+
 // Health, readiness, and startup probes
 app.get('/healthz', (req, res) => res.send('ok'));
 app.get('/readyz', (req, res) => res.send('ok'));
 app.get('/startupz', (req, res) => res.send('ok'));
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 const authSource = process.env.AUTH_SOURCE || 'flow-watch';
 const uri = process.env.MONGO_URI ||
@@ -31,12 +126,16 @@ let validDamCodes = [];
 async function loadValidDamCodesFromDb() {
   const client = new MongoClient(uri);
   try {
-    await client.connect();
+    await observeMongoOperation('connect', damCodesCollection, () => client.connect());
     const db = client.db(dbName);
     const collection = db.collection(damCodesCollection);
-    const damCodes = await collection.find({}).toArray();
+    const damCodes = await observeMongoOperation('find_dam_codes_cache', damCodesCollection, () =>
+      collection.find({}).toArray()
+    );
     damCodesData = damCodes;
     validDamCodes = damCodes.map(d => d.code);
+    damCodesLoadedGauge.set(validDamCodes.length);
+    damCodesLastLoadedTimestampSeconds.set(Math.floor(Date.now() / 1000));
   } catch (err) {
     console.error('Failed to load dam codes from MongoDB:', err.message);
     process.exit(1);
@@ -69,7 +168,7 @@ app.get(`${contextPath}/:damcode/:date`, async (req, res) => {
   }
   const client = new MongoClient(uri);
   try {
-    await client.connect();
+    await observeMongoOperation('connect', collectionName, () => client.connect());
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
     // Convert to MM/DD/YYYY
@@ -77,12 +176,16 @@ app.get(`${contextPath}/:damcode/:date`, async (req, res) => {
     // Query for the specified date checking damCode
     let result;
     if (damCode === 'ALL') {
-      result = await collection.find({ date: dateStr }).toArray();
+      result = await observeMongoOperation('find_schedule_all', collectionName, () =>
+        collection.find({ date: dateStr }).toArray()
+      );
     } else {
-      result = await collection.find(
-        { date: dateStr, [damCode]: { $exists: true } },
-        { projection: { hour: 1, date: 1, [damCode]: 1, _id: 0 } }
-      ).toArray();
+      result = await observeMongoOperation('find_schedule_by_dam', collectionName, () =>
+        collection.find(
+          { date: dateStr, [damCode]: { $exists: true } },
+          { projection: { hour: 1, date: 1, [damCode]: 1, _id: 0 } }
+        ).toArray()
+      );
     }
     res.status(200).json(result);
   } catch (err) {
@@ -96,10 +199,12 @@ app.get(`${contextPath}/:damcode/:date`, async (req, res) => {
 app.get(`${contextPath}/damcodes`, async (req, res) => {
   const client = new MongoClient(uri);
   try {
-    await client.connect();
+    await observeMongoOperation('connect', damCodesCollection, () => client.connect());
     const db = client.db(dbName);
     const collection = db.collection(damCodesCollection);
-    const damCodes = await collection.find({}).toArray();
+    const damCodes = await observeMongoOperation('find_dam_codes_api', damCodesCollection, () =>
+      collection.find({}).toArray()
+    );
     res.json(damCodes);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -112,7 +217,7 @@ app.get(`${contextPath}/damcodes`, async (req, res) => {
 app.get(`${contextPath}/currentflow`, async (req, res) => {
   const client = new MongoClient(uri);
   try {
-    await client.connect();
+    await observeMongoOperation('connect', collectionName, () => client.connect());
     const db = client.db(dbName);
     const collection = db.collection(collectionName);
     // Get current hour in 24h format
@@ -120,7 +225,9 @@ app.get(`${contextPath}/currentflow`, async (req, res) => {
     const currentHour = now.getHours();
     const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
     // Find the schedule row for the current hour and date
-    const row = await collection.findOne({ date: dateStr, hour: currentHour });
+    const row = await observeMongoOperation('find_current_flow', collectionName, () =>
+      collection.findOne({ date: dateStr, hour: currentHour })
+    );
     if (!row) return res.json({});
     // Remove non-dam fields
     const flowRates = {};

@@ -178,3 +178,42 @@ kubectl get svc -n flow-watch
 ```
 
 Then update `env.MONGO_HOST` in the service and batch values files to match.
+
+## 8. Enable Alerts And Grafana Dashboards
+
+Install or upgrade Prometheus with Flow Watch alert rules:
+
+```sh
+helm upgrade --install prometheus prometheus-community/prometheus \
+  --namespace monitoring \
+  -f deploy/monitoring/prometheus-values.yaml
+```
+
+Install or upgrade Grafana with sidecar dashboard loading and Prometheus datasource:
+
+```sh
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+helm upgrade --install grafana grafana/grafana \
+  --namespace monitoring \
+  -f deploy/monitoring/grafana-values.yaml
+```
+
+Apply dashboards for backend and batch operations:
+
+```sh
+kubectl apply -f deploy/monitoring/grafana-dashboards-configmap.yaml
+```
+
+The dashboards include:
+
+- backend overview (request rate, 5xx ratio, p95 latency, in-flight requests)
+- backend runtime (CPU, memory, event loop lag, Mongo operation rate/latency, cache freshness)
+- batch operations (run status, freshness, duration, processed records, USACE partial failures/degraded flag)
+
+The alert set includes:
+
+- batch failure and stale run alerts
+- USACE degraded run alert for partial upstream failures
+- backend metrics missing, high 5xx ratio, and high p95 latency alerts
