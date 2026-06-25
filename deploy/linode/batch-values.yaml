@@ -1,0 +1,23 @@
+imagePullSecrets: []
+
+image:
+  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-batch
+  tag: latest
+  pullPolicy: IfNotPresent
+
+secrets:
+  mongoCredentialsName: mongo-credentials
+
+global:
+  MONGO_HOST: flow-watch-mongodb.flow-watch.svc.cluster.local
+  MONGO_PORT: 27017
+  MONGO_DB: flow-watch
+  AUTH_SOURCE: admin
+
+scrapeswpa:
+  schedule: "0 7 * * *"
+  MONGO_COLLECTION: swpa_schedule
+
+getusacelevels:
+  schedule: "20 * * * *"
+  DAM_CODES_COLLECTION: dam_codes

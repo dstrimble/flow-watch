@@ -1,0 +1,30 @@
+replicaCount: 2
+
+imagePullSecrets: []
+
+image:
+  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-ui
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  name: flow-watch-ui
+
+env:
+  PORT: 80
+  REACT_APP_API_HOST: https://api.flow-watch.example.com
+
+ingress:
+  enabled: true
+  className: nginx
+  host: flow-watch.example.com
+  tls:
+    - hosts:
+        - flow-watch.example.com
+      secretName: flow-watch-example-com
+  annotations:
+    cert-manager.io/cluster-issuer: production
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"

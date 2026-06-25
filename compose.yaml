@@ -1,0 +1,87 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: my-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: flow-watch
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    tmpfs:
+      - /data/db
+
+  schedule-service:
+    build:
+      context: ./service
+      dockerfile: Dockerfile
+    image: flow-watch-service:latest
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_HOST: "mongodb"
+      MONGO_PORT: 27017
+      MONGO_DB: "flow-watch"
+      MONGO_COLLECTION: "swpa_schedule"
+      DAM_CODES_COLLECTION: "dam_codes"
+      MONGO_USERNAME: "admin"
+      MONGO_PASSWORD: "password"
+      AUTH_SOURCE: "admin"
+      PORT: 3000
+      CONTEXT_PATH: "/schedule"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - mongodb
+      - scrape-scheduler
+      - get-usace-levels-scheduler
+
+  scrape-scheduler:
+    build:
+      context: ./batch
+      dockerfile: Dockerfile
+    image: flow-watch-batch:latest
+    environment:
+      MONGO_HOST: "mongodb"
+      MONGO_PORT: 27017
+      MONGO_DB: "flow-watch"
+      MONGO_COLLECTION: "swpa_schedule"
+      MONGO_USERNAME: "admin"
+      MONGO_PASSWORD: "password"
+      AUTH_SOURCE: "admin"
+      CORS_URL: "http://localhost:8080"
+    command: ["scrapeSWPA.js"]
+    depends_on:
+      - mongodb
+
+  get-usace-levels-scheduler:
+    build:
+      context: ./batch
+      dockerfile: Dockerfile
+    image: flow-watch-batch:latest
+    container_name: get-usace-levels-scheduler
+    environment:
+      MONGO_HOST: "mongodb"
+      MONGO_PORT: 27017
+      MONGO_DB: "flow-watch"
+      MONGO_COLLECTION: "dam_codes"
+      MONGO_USERNAME: "admin"
+      MONGO_PASSWORD: "password"
+      AUTH_SOURCE: "admin"
+      CORS_URL: "http://localhost:8080"
+    command: ["getUSACE_levels.js"]
+    depends_on:
+      - mongodb
+
+  ui:
+    build:
+      context: ./UI
+      dockerfile: Dockerfile
+    image: flow-watch-ui:latest
+    ports:
+      - "8080:80" # Serve UI at localhost:8080
+    environment:
+      - REACT_APP_API_HOST=http://localhost:3000
+    depends_on:
+      - schedule-service

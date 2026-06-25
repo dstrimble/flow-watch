@@ -1,0 +1,57 @@
+{
+  "realm": "flow-watch",
+  "enabled": true,
+  "sslRequired": "NONE",
+  "registrationAllowed": true,
+  "clients": [
+    {
+      "clientId": "flow-watch-ui",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:8080/*",
+        "http://localhost:8081/*",
+        "http://localhost:8081/realms/flow-watch/broker/google/login",
+        "*"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "*"
+      ],
+      "baseUrl": "http://localhost:8080",
+      "attributes": {
+        "sslRequired": "NONE"
+      }
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "providerId": "google",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "config": {
+        "clientId": "REPLACE_WITH_GOOGLE_CLIENT_ID",
+        "clientSecret": "REPLACE_WITH_GOOGLE_CLIENT_SECRET"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "google-picture",
+      "identityProviderAlias": "google",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "user.attribute": "picture",
+        "claim": "picture",
+        "syncMode": "INHERIT"
+      }
+    }
+  ],
+  "users": []
+}

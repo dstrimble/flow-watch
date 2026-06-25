@@ -1,0 +1,4 @@
+apiVersion: v2
+name: schedule-service
+version: 1.0.39
+description: Helm chart for flow-watch-service deployment

@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedule-service
+  labels:
+    app: schedule-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: schedule-service
+  template:
+    metadata:
+      labels:
+        app: schedule-service
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: schedule-service
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.mongoCredentialsName | quote }}
+              key: username
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.mongoCredentialsName | quote }}
+              key: password
+        - name: MONGO_HOST
+          value: {{ .Values.env.MONGO_HOST | quote }}
+        - name: MONGO_PORT
+          value: {{ .Values.env.MONGO_PORT | quote }}
+        - name: MONGO_DB
+          value: {{ .Values.env.MONGO_DB | quote }}
+        - name: MONGO_COLLECTION
+          value: {{ .Values.env.MONGO_COLLECTION | quote }}
+        - name: DAM_CODES_COLLECTION
+          value: {{ .Values.env.DAM_CODES_COLLECTION | quote }}
+        - name: AUTH_SOURCE
+          value: {{ .Values.env.AUTH_SOURCE | quote }}
+        - name: PORT
+          value: {{ .Values.env.PORT | quote }}
+        - name: CORS_URL
+          value: {{ .Values.env.CORS_URL | quote }}
+        {{- if .Values.secrets.openaiApiKeyName }}
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.openaiApiKeyName | quote }}
+              key: api-key
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /startupz
+            port: 3000
+          failureThreshold: 30
+          periodSeconds: 2

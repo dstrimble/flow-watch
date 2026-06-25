@@ -1,0 +1,21 @@
+[
+  { "code": "BBD", "project": "Broken Bow", "state": "Oklahoma", "color": "#007bff", "district": "SWT", "level_id": "BROK.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "BROK.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "DEN", "project": "Denison", "state": "Okla-Texas", "color": "#28a745", "district": "SWT", "level_id": "DENI.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "DENI.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "KEY", "project": "Keystone", "state": "Oklahoma", "color": "#dc3545", "district": "SWT", "level_id": "KEYS.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "KEYS.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "FGD", "project": "Fort Gibson", "state": "Oklahoma", "color": "#ffc107", "district": "SWT", "level_id": "FGIB.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "FGIB.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "WFD", "project": "Webbers Falls L&D", "state": "Oklahoma", "color": "#17a2b8", "district": "SWT", "level_id": "WEBB.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "WEBB.Elev-Tailwater.Inst.30Minutes.0.Ccp-Rev" },
+  { "code": "TKD", "project": "Tenkiller", "state": "Oklahoma", "color": "#6610f2", "district": "SWT", "level_id": "TENK.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "TENK.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "EUF", "project": "Eufaula", "state": "Oklahoma", "color": "#fd7e14", "district": "SWT", "level_id": "EUFA.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "EUFA.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "RSK", "project": "Robert S. Kerr L&D", "state": "Oklahoma", "color": "#6f42c1", "district": "SWT", "level_id": "ROBE.Elev.Inst.1Hour.0.Ccp-Rev", "tail_level_id": "ROBE.Elev-Tailwater.Inst.1Hour.0.Ccp-Rev" },
+  { "code": "OZK", "project": "Ozark L&D", "state": "Arkansas", "color": "#20c997", "district": "SWL", "level_id": "LD12_Ozark-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "LD12_Ozark-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "DAD", "project": "Dardanelle L&D", "state": "Arkansas", "color": "#e83e8c", "district": "SWL", "level_id": "LD10_Dardanelle-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "LD10_Dardanelle-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "BEV", "project": "Beaver", "state": "Arkansas", "color": "#343a40", "district": "SWL", "level_id": "Beaver_Dam-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "Beaver_Dam-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "TRD", "project": "Table Rock", "state": "Missouri", "color": "#ff5733", "district": "SWL", "level_id": "Table_Rock_Dam-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "Table_Rock_Dam-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-raw" },
+  { "code": "BSD", "project": "Bull Shoals", "state": "Arkansas", "color": "#33ff57", "district": "SWL", "level_id": "Bull_Shoals_Dam-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "Bull_Shoals_Dam-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "NFD", "project": "Norfork", "state": "Arkansas", "color": "#3357ff", "district": "SWL", "level_id": "Norfork_Dam-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "Norfork_Dam-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "GFD", "project": "Greers Ferry", "state": "Arkansas", "color": "#ff33a6", "district": "SWL", "level_id": "GreersFerry_Dam-Headwater.Elev.Inst.1Hour.0.Decodes-rev", "tail_level_id": "GreersFerry_Dam-Tailwater.Elev-Downstream.Inst.1Hour.0.Decodes-rev" },
+  { "code": "STD", "project": "Stockton", "state": "Missouri", "color": "#a633ff", "district": "NWK", "level_id": "STON.Elev.Inst.1Hour.0.Best-NWK", "tail_level_id": "STON-Tailwater.Elev.Inst.1Hour.0.Best-NWK" },
+  { "code": "HST", "project": "Harry S Truman", "state": "Missouri", "color": "#33fff6", "district": "NWK", "level_id": "HAST.Elev.Inst.1Hour.0.Best-NWK", "tail_level_id": "HAST-Tailwater.Elev.Inst.1Hour.0.Best-NWK" },
+  { "code": "CAN", "project": "Clarence Cannon", "state": "Missouri", "color": "#ff8633", "district": "MVS", "level_id": "Mark Twain Lk-Salt.Elev.Inst.30Minutes.0.lrgsShef-rev", "tail_level_id": "Mark Twain Lk TW-Salt.Elev.Inst.15Minutes.0.lrgsShef-rev" },
+  { "code": "ALL", "project": "All Dams", "state": "Any", "color": "#a6ff33" }
+]

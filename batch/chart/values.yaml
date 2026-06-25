@@ -1,0 +1,26 @@
+imagePullSecrets: []
+
+image:
+  repository: flow-watch-batch
+  tag: latest
+  pullPolicy: IfNotPresent
+
+secrets:
+  mongoCredentialsName: mongo-credentials
+
+global:
+  registry: index.docker.io/lemonpro
+  image: scrapeswpa
+  tag: latest
+  MONGO_HOST: "standalone-mongodb-svc.flow-watch.svc.cluster.local"
+  MONGO_PORT: 27017
+  MONGO_DB: "flow-watch"
+  AUTH_SOURCE: "admin"
+
+scrapeswpa:
+  schedule: "0 7 * * *" # Runs every day at 7:00 AM UTC
+  MONGO_COLLECTION: "swpa_schedule"
+
+getusacelevels:
+  schedule: "20 * * * *" # Runs every hour at :20 minutes past the hour
+  DAM_CODES_COLLECTION: "dam_codes"

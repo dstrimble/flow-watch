@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scrapeswpa-cronjob
+spec:
+  # quote to avoid YAML parsing issues with *
+  schedule: {{ default "0 0 * * 1" .Values.scrapeswpa.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: OnFailure
+          containers:
+            - name: scrapeswpa
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+              env:
+                - name: MONGO_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.mongoCredentialsName | quote }}
+                      key: username
+                - name: MONGO_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.mongoCredentialsName | quote }}
+                      key: password
+                - name: MONGO_HOST
+                  value: {{ .Values.global.MONGO_HOST | quote }}
+                - name: MONGO_PORT
+                  value: {{ .Values.global.MONGO_PORT | quote }}
+                - name: MONGO_DB
+                  value: {{ .Values.global.MONGO_DB | quote }}
+                - name: AUTH_SOURCE
+                  value: {{ .Values.global.AUTH_SOURCE | quote }}
+                - name: MONGO_COLLECTION
+                  value: {{ .Values.scrapeswpa.MONGO_COLLECTION | quote }}
+              args:
+                - scrapeSWPA.js

@@ -1,0 +1,41 @@
+replicaCount: 2
+
+imagePullSecrets: []
+
+image:
+  repository: ghcr.io/YOUR_GITHUB_USERNAME/flow-watch-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+secrets:
+  mongoCredentialsName: mongo-credentials
+  openaiApiKeyName: openai-api-key
+
+service:
+  type: ClusterIP
+  port: 3000
+  name: schedule-service
+
+env:
+  MONGO_HOST: flow-watch-mongodb.flow-watch.svc.cluster.local
+  MONGO_PORT: 27017
+  MONGO_DB: flow-watch
+  MONGO_COLLECTION: swpa_schedule
+  DAM_CODES_COLLECTION: dam_codes
+  AUTH_SOURCE: admin
+  PORT: 3000
+  contextPath: /schedule
+  CORS_URL: https://flow-watch.example.com
+
+ingress:
+  enabled: true
+  className: nginx
+  host: api.flow-watch.example.com
+  tls:
+    - hosts:
+        - api.flow-watch.example.com
+      secretName: api-flow-watch-example-com
+  annotations:
+    cert-manager.io/cluster-issuer: production
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/from-to-www-redirect: "true"

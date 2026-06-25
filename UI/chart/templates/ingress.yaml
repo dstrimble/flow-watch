@@ -1,0 +1,26 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flow-watch-ui
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            backend:
+              service:
+                name: {{ .Values.service.name | default "flow-watch-ui" }}
+                port:
+                  number: {{ .Values.env.PORT | default 80 }}
+            pathType: Prefix
+  tls:
+  {{- toYaml .Values.ingress.tls | nindent 4 }}
+{{- end }}
