@@ -25,16 +25,16 @@ env:
   AUTH_SOURCE: admin
   PORT: 3000
   contextPath: /schedule
-  CORS_URL: https://flow-watch.com
+  CORS_URL: https://flow-watch.trimblebarra.com
 
 ingress:
   enabled: false
   className: nginx
-  host: api.flow-watch.com
+  host: flow-watch-api.trimblebarra.com
   tls:
     - hosts:
-        - api.flow-watch.com
-      secretName: api-flow-watch-com
+        - flow-watch-api.trimblebarra.com
+      secretName: flow-watch-api-trimblebarra-com
   annotations:
     cert-manager.io/cluster-issuer: production
     nginx.ingress.kubernetes.io/proxy-body-size: "0"

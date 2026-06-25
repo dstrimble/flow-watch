@@ -14,16 +14,16 @@ service:
 
 env:
   PORT: 80
-  REACT_APP_API_HOST: https://api.flow-watch.com
+  REACT_APP_API_HOST: https://flow-watch-api.trimblebarra.com
 
 ingress:
   enabled: false
   className: nginx
-  host: flow-watch.com
+  host: flow-watch.trimblebarra.com
   tls:
     - hosts:
-        - flow-watch.com
-      secretName: flow-watch-com
+        - flow-watch.trimblebarra.com
+      secretName: flow-watch-trimblebarra-com
   annotations:
     cert-manager.io/cluster-issuer: production
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
